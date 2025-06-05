@@ -7,7 +7,7 @@ export class TableService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(data: { number: number; eventId: string }) {
-    const qrData = `http://localhost:5173/event/${data.eventId}/table/${data.number}`;
+    const qrData = `https://omniserve.omnicassion.com/event/${data.eventId}/table/${data.number}`;
     const qrCode = await QRCode.toDataURL(qrData);
 
     return this.prisma.table.create({
