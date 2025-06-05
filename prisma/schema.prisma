@@ -1,0 +1,135 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  VENDOR
+  MANAGER
+  GUEST
+}
+
+enum OrderStatus {
+  PENDING // Order received, not yet processed
+  IN_PROGRESS // Order is being prepared
+  READY // Order is ready to be served
+  SERVED // Order has been delivered to the guest
+}
+
+// ======================
+// Models
+// ======================
+
+model User {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  name     String
+  email    String @unique
+  password String
+  role     Role?
+
+  // Relations
+  orders        Order[]        @relation("UserOrders") // Orders placed as a guest
+  managedEvents EventManager[] // Events managed by user
+  vendorEvents  EventVendor[] // Events created by vendor
+}
+
+model Event {
+  id          String         @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  venue       String?
+  photo       String?
+  // Relations via Join Models
+  managers    EventManager[] // Managers assigned
+  vendors     EventVendor[] // Vendor owners
+
+  // One-to-Many
+  tables    Table[] // Event tables
+  menuItems MenuItem[] // Menu items
+  orders    Order[] // Orders
+}
+
+model Table {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  number Int
+  qrCode String // Unique QR code data or URL
+
+  // Relations
+  event   Event   @relation(fields: [eventId], references: [id])
+  eventId String  @db.ObjectId
+  orders  Order[]
+}
+
+model MenuItem {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  price       Float?
+  tag         String?
+  recTag      String?
+  photo String?
+  // Relations
+  event       Event       @relation(fields: [eventId], references: [id])
+  eventId     String      @db.ObjectId
+  orderItems  OrderItem[]
+}
+
+model Order {
+  id        String      @id @default(auto()) @map("_id") @db.ObjectId
+  status    OrderStatus @default(PENDING)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  // Relations
+  event      Event       @relation(fields: [eventId], references: [id])
+  eventId    String      @db.ObjectId
+  table      Table       @relation(fields: [tableId], references: [id])
+  tableId    String      @db.ObjectId
+  guest      User?       @relation("UserOrders", fields: [guestId], references: [id])
+  guestId    String?     @db.ObjectId
+  orderItems OrderItem[]
+}
+
+model OrderItem {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  quantity Int
+
+  // Relations
+  order      Order    @relation(fields: [orderId], references: [id])
+  orderId    String   @db.ObjectId
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  menuItemId String   @db.ObjectId
+}
+
+// ======================
+// Join Models
+// ======================
+
+model EventManager {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  user    User   @relation(fields: [userId], references: [id])
+  userId  String @db.ObjectId
+  event   Event  @relation(fields: [eventId], references: [id])
+  eventId String @db.ObjectId
+}
+
+model EventVendor {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  user    User   @relation(fields: [userId], references: [id])
+  userId  String @db.ObjectId
+  event   Event  @relation(fields: [eventId], references: [id])
+  eventId String @db.ObjectId
+}
