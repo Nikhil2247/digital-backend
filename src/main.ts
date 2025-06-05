@@ -4,6 +4,8 @@ import * as bodyParser from 'body-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  // --- ADD THIS LINE FOR DEBUGGING ---
+  console.log('DATABASE_URL from process.env:', process.env.DATABASE_URL);
   app.enableCors({
     origin: '*', // Adjust this to your frontend URL
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
